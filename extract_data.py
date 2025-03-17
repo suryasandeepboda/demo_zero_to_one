@@ -1,48 +1,58 @@
+"""
+Module for extracting data from Google Sheets.
+This module provides functionality to connect to Google Sheets API
+and extract specific columns of data.
+"""
+
+from typing import Optional
+import pandas as pd
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
-import pandas as pd
 
 def connect_to_sheets():
-    # Define the scope and credentials
-    SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    """
+    Establishes connection to Google Sheets API using service account credentials.
+    
+    Returns:
+        service: Google Sheets API service object
+    """
+    scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
     creds = Credentials.from_service_account_file(
         'credentials.json',
-        scopes=SCOPES
+        scopes=scopes
     )
     
-    # Create the service
     service = build('sheets', 'v4', credentials=creds)
     return service
 
-def extract_sheet_data():
+def extract_sheet_data() -> Optional[pd.DataFrame]:
+    """
+    Extracts specified columns from the Google Sheet.
+    
+    Returns:
+        pd.DataFrame: DataFrame containing the extracted data,
+                     or None if extraction fails
+    """
     try:
-        # Connect to Google Sheets
         service = connect_to_sheets()
         
-        # Spreadsheet ID from the URL
-        SPREADSHEET_ID = '15FMeidgU2Dg7Q4JKPkLAdJmQ3IxWCWJXjhCo9UterCE'
+        spreadsheet_id = '15FMeidgU2Dg7Q4JKPkLAdJmQ3IxWCWJXjhCo9UterCE'
+        range_name = 'Sheet1!A:Z'
         
-        # Range of data to read (adjust based on your sheet structure)
-        RANGE_NAME = 'Sheet1!A:Z'  # Reading all columns, we'll filter later
-        
-        # Call the Sheets API
         sheet = service.spreadsheets()
         result = sheet.values().get(
-            spreadsheetId=SPREADSHEET_ID,
-            range=RANGE_NAME
+            spreadsheetId=spreadsheet_id,
+            range=range_name
         ).execute()
         
-        # Get the values from the sheet
         values = result.get('values', [])
         
         if not values:
             print('No data found.')
             return None
             
-        # Convert to DataFrame
-        df = pd.DataFrame(values[1:], columns=values[0])
+        df_data = pd.DataFrame(values[1:], columns=values[0])
         
-        # Select required columns
         required_columns = [
             'Email address',
             'Tool used',
@@ -56,17 +66,14 @@ def extract_sheet_data():
             'Pod'
         ]
         
-        # Filter only required columns
-        filtered_df = df[required_columns]
+        return df_data[required_columns]
         
-        return filtered_df
-        
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+    except Exception as error:
+        print(f"An error occurred: {str(error)}")
         return None
 
-if __name__ == "__main__":
-    # Extract data
+def main():
+    """Main function to execute the data extraction process."""
     data = extract_sheet_data()
     
     if data is not None:
@@ -74,3 +81,6 @@ if __name__ == "__main__":
         print(f"Number of rows extracted: {len(data)}")
         print("\nFirst few rows of the data:")
         print(data.head())
+
+if __name__ == "__main__":
+    main()
